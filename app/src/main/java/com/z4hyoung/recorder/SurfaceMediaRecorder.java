@@ -62,23 +62,18 @@ public class SurfaceMediaRecorder extends MediaRecorder {
      * default inter-frame gap
      */
     private static final long DEFAULT_INTERFRAME_GAP = 1000;
-
     private int mVideoSource;
-
     private OnErrorListener mOnErrorListener;
-
     private long mInterframeGap = DEFAULT_INTERFRAME_GAP; // 1000 milliseconds as default
-
     private Surface mSurface;
-
     // if set, this class works same as MediaRecorder
     private Surface mInputSurface;
-
     private Handler mWorkerHandler;
-
     private VideoFrameDrawer mVideoFrameDrawer;
-
-    private final AtomicBoolean mRecording = new AtomicBoolean(false);
+    // indicate surface composing started or not
+    private final AtomicBoolean mStarted = new AtomicBoolean(false);
+    // indicate surface composing paused or not
+    private final AtomicBoolean mPaused = new AtomicBoolean(false);
 
     private final Runnable mWorkerRunnable = new Runnable() {
         private void handlerCanvasError(int errorCode) {
@@ -133,10 +128,28 @@ public class SurfaceMediaRecorder extends MediaRecorder {
     };
 
     @Override
+    public void pause() throws IllegalStateException {
+        if (isSurfaceAvailable()) {
+            mPaused.set(true);
+            mWorkerHandler.removeCallbacks(mWorkerRunnable);
+        }
+        super.pause();
+    }
+
+    @Override
     public void reset() {
         localReset();
         super.reset();
 
+    }
+
+    @Override
+    public void resume() throws IllegalStateException {
+        super.resume();
+        if (isSurfaceAvailable()) {
+            mPaused.set(false);
+            mWorkerHandler.post(mWorkerRunnable);
+        }
     }
 
     @Override
@@ -177,7 +190,7 @@ public class SurfaceMediaRecorder extends MediaRecorder {
         super.start();
         if (isSurfaceAvailable()) {
             mSurface = getSurface();
-            setRecording(true);
+            mStarted.set(true);
             mWorkerHandler.post(mWorkerRunnable);
         }
     }
@@ -212,27 +225,30 @@ public class SurfaceMediaRecorder extends MediaRecorder {
         mWorkerHandler = new Handler(looper);
     }
 
+    /**
+     * Returns whether Surface is editable
+     * @return true if surface editable
+     */
     protected boolean isSurfaceAvailable() {
         return (mVideoSource == VideoSource.SURFACE) && (mInputSurface == null);
     }
 
     private boolean isRecording() {
-        return mRecording.get();
-    }
-
-    private void setRecording(boolean recording) {
-        mRecording.set(recording);
+        return (mStarted.get() && !mPaused.get());
     }
 
     private void localReset() {
-        setRecording(false);
-        if (mWorkerHandler != null) {
-            mWorkerHandler.removeCallbacks(mWorkerRunnable);
-            mWorkerHandler = null;
+        if (isSurfaceAvailable()) {
+            mStarted.compareAndSet(true, false);
+            mPaused.compareAndSet(true,false);
+            if (mWorkerHandler != null) {
+                mWorkerHandler.removeCallbacks(mWorkerRunnable);
+            }
         }
         mInterframeGap = DEFAULT_INTERFRAME_GAP;
         mInputSurface = null;
         mOnErrorListener = null;
         mVideoFrameDrawer = null;
+        mWorkerHandler = null;
     }
 }

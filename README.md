@@ -1,5 +1,5 @@
 # ViewRecorder
-A small tool let you record any view which is able to be captured.
+A small tool let you record any view which is able to be captured(`SurfaceView` is excluded).
 
 The class is very easy to use, since it extends `MediaRecord` with only one extra API to set or switch recorded view.
 

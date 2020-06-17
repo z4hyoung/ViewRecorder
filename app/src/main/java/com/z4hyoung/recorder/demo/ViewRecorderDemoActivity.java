@@ -5,7 +5,7 @@ import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -174,7 +174,7 @@ public class ViewRecorderDemoActivity extends AppCompatActivity {
         mViewRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         mViewRecorder.setVideoSize(720, 1280);
         mViewRecorder.setVideoEncodingBitRate(2000 * 1000);
-        mViewRecorder.setOutputFile(getExternalCacheDir() + "/" + System.currentTimeMillis() + ".mp4");
+        mViewRecorder.setOutputFile(getCacheDir() + "/" + System.currentTimeMillis() + ".mp4");
         mViewRecorder.setOnErrorListener(mOnErrorListener);
 
         mViewRecorder.setRecordedView(mTextView);
